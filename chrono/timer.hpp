@@ -136,4 +136,4 @@ namespace eon::chrono {
         clock_type::time_point m_start;
     };
 
-} // namespace eon::chrono
+}

@@ -60,4 +60,4 @@ namespace eon::chrono {
     using u8auto_timer = basic_auto_timer<Rep, Period, char8_t, std::char_traits<char8_t>, Opt>;
 #endif
 
-} // namespace eon::chrono
+}

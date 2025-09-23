@@ -126,7 +126,7 @@ namespace eon::chrono {
 
 #ifdef __cpp_lib_char8_t
     EON_CHRONO_GENERATE_TIME_UNITS(u8, u8)
-#endif // __cpp_lib_char8_t
+#endif
 
     //
     // helping functions
@@ -150,9 +150,9 @@ namespace eon::chrono {
         else if constexpr (std::same_as<CharT, char8_t>) {
             return u8time_unit<Period>();
         }
-    #endif // __cpp_lib_char8_t
+    #endif
 
         return {};
     }
 
-} // namespace eon::chrono
+}

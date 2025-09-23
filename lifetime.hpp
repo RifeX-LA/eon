@@ -111,11 +111,11 @@ namespace eon {
     std::size_t lifetime::s_total = 0;
     std::size_t lifetime::s_alive = 0;
 
-} // namespace eon
+}
 
 template <>
 struct std::formatter<eon::lifetime> : std::formatter<int> {
-    [[nodiscard]] auto format(eon::lifetime l, std::format_context & ctx) const {
+    [[nodiscard]] auto format(eon::lifetime l, auto & ctx) const {
         std::format_to(ctx.out(), "lifetime(");
         std::formatter<int>::format(l.id(), ctx);
         return std::format_to(ctx.out(), ")");

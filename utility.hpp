@@ -7,7 +7,7 @@ namespace eon {
     /**
      * @brief returns argument by copy if it's cheaper to pass <b>Fn</b> by copy,
      * returns std::reference_wrapper<Fn> otherwise,
-     * i.e. provides a way of cheap copying of argument
+     * i.e., provides a way of cheap copying of argument
      */
     template <typename Fn>
     [[nodiscard]] constexpr auto pass_fn(Fn & fn) noexcept {
