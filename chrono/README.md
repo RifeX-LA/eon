@@ -94,7 +94,7 @@ Features:
    
 2. Writing time units:
    
-   **Time units will be written by default**. If you don't want that, provide `eon::chrono::auto_timer_opt::dont_write_time_unit` value as template parameter.
+   **Time units will be written by default**. If you don't want that, provide `eon::chrono::writing_time_unit::disable` value as template parameter.
 
    ```c++
    eon::chrono::auto_timer<std::uintmax_t, std::milli> auto_timer(std::cout, "Elapsed time is ");
@@ -107,7 +107,7 @@ Features:
    ```
    
    ```c++
-   eon::chrono::auto_timer<std::uintmax_t, std::milli, eon::chrono::auto_timer_opt::dont_write_time_unit> auto_timer(std::cout, "Elapsed time is ");
+   eon::chrono::auto_timer<std::uintmax_t, std::milli, eon::chrono::writing_time_unit::disable> auto_timer(std::cout, "Elapsed time is ");
    // some code here...
    // time unit will be not written
    ```

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+#include <tuple>
 #include <concepts>
 #include <type_traits>
 
@@ -40,11 +42,13 @@ namespace eon {
 
 
     namespace detail {
+
         template <typename T, template<typename...> typename Template>
         struct is_specialization_of : std::false_type {};
 
         template <template<typename...> typename Template, typename... Types>
         struct is_specialization_of<Template<Types...>, Template> : std::true_type {};
+
     }
 
     template <typename T, template<typename...> typename Template>
@@ -52,13 +56,45 @@ namespace eon {
 
 
     namespace detail {
+
         template <template <typename...> typename Template, typename... Args>
         void derived_from_specialization_impl(Template<Args...> const &);
+
     }
 
     template <class T, template <typename...> typename Template>
     concept derived_from_specialization_of = requires(T const & obj) {
         detail::derived_from_specialization_impl<Template>(obj); // qualified: avoid ADL, handle incomplete types
     };
+
+
+    namespace detail {
+
+        template <typename T>
+        concept has_tuple_size = requires { typename std::tuple_size<std::remove_cvref_t<T>>::type; };
+
+        template <std::size_t I, typename U>
+        concept tuple_like_for_index = requires (U & u, U const & cu) {
+            typename std::tuple_element<I, U>::type;
+            { get<I>(u) }  -> std::same_as<std::tuple_element_t<I, U> &>;
+            { get<I>(cu) } -> std::same_as<std::tuple_element_t<I, U> const &>;
+        };
+
+        template <typename T>
+        [[nodiscard]] consteval bool is_tuple_like_impl() noexcept {
+            auto is_tuple_like = []<std::size_t... I>(std::index_sequence<I...>) {
+                return (tuple_like_for_index<I, T> && ...);
+            };
+
+            return is_tuple_like(std::make_index_sequence<std::tuple_size_v<T>>{});
+        }
+
+    }
+
+    template <typename T>
+    concept tuple_like = detail::has_tuple_size<T> && detail::is_tuple_like_impl<std::remove_cvref_t<T>>();
+
+    template <typename T>
+    concept pair_like = tuple_like<T> && std::tuple_size_v<std::remove_cvref_t<T>> == 2;
 
 }

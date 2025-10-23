@@ -11,7 +11,7 @@ namespace eon {
      */
     template <typename Fn>
     [[nodiscard]] constexpr auto pass_fn(Fn & fn) noexcept {
-        static constexpr bool pass_by_value = sizeof(Fn) <= sizeof(void*)
+        constexpr bool pass_by_value = sizeof(Fn) <= sizeof(void*)
                                             && std::is_trivially_copy_constructible_v<Fn>
                                             && std::is_trivially_destructible_v<Fn>;
 
