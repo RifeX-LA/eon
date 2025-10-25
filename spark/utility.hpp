@@ -13,7 +13,7 @@ namespace eon::spark {
 
     namespace detail::get_ {
 
-        void get(); // MSVC ADL-lookup workaround
+        void get(); // MSVC ADL workaround
 
 
         template <typename T, std::size_t I>
@@ -137,7 +137,15 @@ namespace eon::spark {
                 member,
                 prev_end,
                 next_begin,
+                pass_to_prev_end,
             };
+
+            template <typename It, std::sentinel_for<It> Sent>
+            [[nodiscard]] static constexpr It find_prev_end(It it, Sent const sent)
+            noexcept(std::is_nothrow_copy_constructible_v<It> && std::is_nothrow_copy_assignable_v<It> && noexcept(++it == sent)) {
+                for (auto next = std::ranges::next(it); next != sent; it = next, ++next) {}
+                return it;
+            }
 
             template <typename Rng>
             [[nodiscard]] static consteval std::pair<strategy, bool> choose() noexcept {
@@ -147,8 +155,11 @@ namespace eon::spark {
                 else if constexpr (can_prev_end<Rng>) {
                     return {strategy::prev_end, noexcept(*std::ranges::prev(std::ranges::end(std::declval<Rng&>())))};
                 }
+                else if constexpr (std::ranges::sized_range<Rng>) {
+                    return {strategy::next_begin, noexcept(*std::ranges::next(std::ranges::begin(std::declval<Rng&>()), std::ranges::size(std::declval<Rng&>()) - 1))};
+                }
                 else {
-                    return {strategy::next_begin, noexcept(*std::ranges::next(std::ranges::begin(std::declval<Rng&>()), std::ranges::distance(std::declval<Rng&>()) - 1))};
+                    return {strategy::pass_to_prev_end, noexcept(*find_prev_end(std::ranges::begin(std::declval<Rng&>()), std::ranges::end(std::declval<Rng&>())))};
                 }
             }
 
@@ -167,7 +178,10 @@ namespace eon::spark {
                     return *std::ranges::prev(std::ranges::end(rng));
                 }
                 else if constexpr (strat == strategy::next_begin) {
-                    return *std::ranges::next(std::ranges::begin(rng), std::ranges::distance(rng) - 1);
+                    return *std::ranges::next(std::ranges::begin(rng), std::ranges::size(rng) - 1);
+                }
+                else if constexpr (strat == strategy::pass_to_prev_end) {
+                    return *find_prev_end(std::ranges::begin(rng), std::ranges::end(rng));
                 }
                 else {
                     static_assert(always_false<Rng>, "Unexpected strategy");

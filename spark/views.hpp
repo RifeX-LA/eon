@@ -100,6 +100,18 @@ namespace eon::spark::views {
     inline constexpr to_str_t to_str;
 
 
+    template <std::size_t I>
+    struct get_t final : std::ranges::range_adaptor_closure<get_t<I>> {
+        template <std::ranges::viewable_range Rng>
+        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+            return std::views::transform(std::forward<Rng>(rng), spark::get<I>);
+        }
+    };
+
+    template <std::size_t I>
+    inline constexpr get_t<I> get;
+
+
     struct indirect_t final : std::ranges::range_adaptor_closure<indirect_t> {
         template <std::ranges::viewable_range Rng>
         [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
