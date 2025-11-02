@@ -84,8 +84,8 @@ namespace eon::spark {
 
     struct addressof_t final {
         template <typename T>
-        [[nodiscard]] constexpr auto operator()(T && value) const noexcept {
-            return std::addressof(std::forward<T>(value));
+        [[nodiscard]] constexpr auto operator()(T & value) const noexcept {
+            return std::addressof(value);
         }
     };
 
@@ -105,22 +105,59 @@ namespace eon::spark {
 
     struct hash_t final {
         template <typename T>
-        [[nodiscard]] constexpr auto operator()(T && value) const noexcept {
-            return std::hash<std::remove_cvref_t<T>>{}(value);
+        [[nodiscard]] constexpr auto operator()(T && value) const noexcept(noexcept(std::hash<std::remove_cvref_t<T>>{}(std::forward<T>(value)))) {
+            return std::hash<std::remove_cvref_t<T>>{}(std::forward<T>(value));
         }
     };
 
     inline constexpr hash_t hash;
 
 
-    struct front_t final {
-        template <std::ranges::input_range Rng>
-        [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(noexcept(*std::ranges::begin(std::declval<Rng&>()))) {
-            return *std::ranges::begin(rng);
-        }
-    };
+    namespace detail::front_ {
 
-    inline constexpr front_t front;
+        template <typename Rng>
+        concept has_member = requires (Rng && rng) { std::forward<Rng>(rng).front(); };
+
+
+        class cpo final {
+            enum class strategy {
+                member,
+                begin,
+            };
+
+            template <typename Rng>
+            [[nodiscard]] static consteval std::pair<strategy, bool> choose() noexcept {
+                if constexpr (has_member<Rng>) {
+                    return {strategy::member, noexcept(std::declval<Rng>().front())};
+                }
+                else {
+                    return {strategy::begin, noexcept(*std::ranges::begin(std::declval<Rng&>()))};
+                }
+            }
+
+            template <typename Rng>
+            static constexpr auto choice = choose<Rng>();
+
+        public:
+            template <std::ranges::forward_range Rng>
+            [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(choice<Rng>.second) {
+                static constexpr auto strat = choice<Rng>.first;
+
+                if constexpr (strat == strategy::member) {
+                    return std::forward<Rng>(rng).front();
+                }
+                else if constexpr (strat == strategy::begin) {
+                    return *std::ranges::begin(rng);
+                }
+                else {
+                    static_assert(always_false<Rng>, "Unexpected strategy");
+                }
+            }
+        };
+
+    }
+
+    inline constexpr detail::front_::cpo front;
 
 
     namespace detail::back_ {
