@@ -8,6 +8,7 @@ Available features:
 * `eon::without_cv<T>` - does `T` haven't cv-qualifiers?
 * `eon::without_ref<T>` - is `T` a non-reference type?
 * `eon::without_cvref` - does `T` haven't cv-qualifiers or reference?
+* `eon::ref_or_ptr<T>` - is `T` a reference or pointer type?
 * `eon::exists_in<T, Types...>` - does `Types...` contain `T`?
 * `eon::character<T>` - is `T` a character type?
 * `eon::indirectable<T>` - does `T` have `operator*()`? 

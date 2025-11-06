@@ -3,6 +3,8 @@
 #include <utility> // std::forward
 #include <type_traits>
 
+#include <eon/concepts.hpp>
+
 #ifdef EON_SPARK_INCLUDE_BOOST
 #include <boost/lexical_cast.hpp>
 #endif
@@ -24,8 +26,7 @@ namespace eon::spark {
     inline constexpr static_caster_t<bool> has_value;
 
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     struct dynamic_caster_t final {
         template <typename Source>
         [[nodiscard]] Target operator()(Source && value) const noexcept(std::is_pointer_v<Target>) {
@@ -33,13 +34,11 @@ namespace eon::spark {
         }
     };
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     inline constexpr dynamic_caster_t<Target> dynamic_caster;
 
 
     template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
     struct reinterpret_caster_t final {
         template <typename Source>
         [[nodiscard]] constexpr Target operator()(Source && value) const noexcept {
@@ -48,12 +47,10 @@ namespace eon::spark {
     };
 
     template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
     inline constexpr reinterpret_caster_t<Target> reinterpret_caster;
 
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     struct const_caster_t final {
         template <typename Source>
         [[nodiscard]] constexpr Target operator()(Source && value) const noexcept {
@@ -61,8 +58,7 @@ namespace eon::spark {
         }
     };
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     inline constexpr const_caster_t<Target> const_caster;
 
 

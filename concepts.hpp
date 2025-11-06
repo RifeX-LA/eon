@@ -20,6 +20,10 @@ namespace eon {
     concept without_cvref = std::same_as<T, std::remove_cvref_t<T>>;
 
 
+    template <typename T>
+    concept ref_or_ptr = std::is_reference_v<T> || std::is_pointer_v<T>;
+
+
     template <typename T, typename... Types>
     concept exists_in = std::disjunction_v<std::is_same<T, Types>...>;
 

@@ -24,8 +24,7 @@ namespace eon::spark::views {
     inline constexpr static_caster_t<Target> static_caster;
 
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     struct dynamic_caster_t final : std::ranges::range_adaptor_closure<dynamic_caster_t<Target>> {
         template <std::ranges::viewable_range Rng>
         [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
@@ -33,13 +32,11 @@ namespace eon::spark::views {
         }
     };
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     inline constexpr dynamic_caster_t<Target> dynamic_caster;
 
 
     template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
     struct reinterpret_caster_t final : std::ranges::range_adaptor_closure<reinterpret_caster_t<Target>> {
         template <std::ranges::viewable_range Rng>
         [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
@@ -48,12 +45,10 @@ namespace eon::spark::views {
     };
 
     template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
     inline constexpr reinterpret_caster_t<Target> reinterpret_caster;
 
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     struct const_caster_t final : std::ranges::range_adaptor_closure<dynamic_caster_t<Target>> {
         template <std::ranges::viewable_range Rng>
         [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
@@ -61,8 +56,7 @@ namespace eon::spark::views {
         }
     };
 
-    template <typename Target>
-    requires (std::is_reference_v<Target> || std::is_pointer_v<Target>)
+    template <ref_or_ptr Target>
     inline constexpr const_caster_t<Target> const_caster;
 
 
@@ -77,7 +71,7 @@ namespace eon::spark::views {
 
 
     template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
-    requires (std::floating_point<Target> || std::integral<Target>)
+    requires (std::is_arithmetic_v<Target>)
     struct from_str_t final : std::ranges::range_adaptor_closure<from_str_t<Target, ParsingMode>> {
         template <std::ranges::viewable_range Rng>
         [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
@@ -86,7 +80,7 @@ namespace eon::spark::views {
     };
 
     template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
-    requires (std::floating_point<Target> || std::integral<Target>)
+    requires (std::is_arithmetic_v<Target>)
     inline constexpr from_str_t<Target, ParsingMode> from_str;
 
 
@@ -183,6 +177,7 @@ namespace eon::spark::views {
 
 
 #ifdef EON_SPARK_INCLUDE_BOOST
+
     template <typename Target>
     struct lexical_caster_t final : std::ranges::range_adaptor_closure<lexical_caster_t<Target>> {
         template <std::ranges::viewable_range Rng>
@@ -205,6 +200,7 @@ namespace eon::spark::views {
 
     template <template <typename...> typename Template>
     inline constexpr construct_t<Template> construct;
+
 #endif
 
 }
