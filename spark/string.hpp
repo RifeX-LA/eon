@@ -13,40 +13,26 @@
 
 namespace eon::spark {
 
-    enum class str_parsing_mode {
+    enum class str_parsing {
         relaxed,
         strict
     };
 
-    template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
+    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
     requires (std::is_arithmetic_v<Target>)
     struct from_str_t final {
-        template <std::ranges::contiguous_range Rng>
-        requires (std::same_as<std::ranges::range_value_t<Rng>, char> && std::integral<Target>)
-        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, int base = 10) const noexcept {
-            auto const ptr = std::ranges::data(rng);
-            return (*this)(ptr, ptr + std::ranges::size(rng), base);
-        }
-
-        template <std::ranges::contiguous_range Rng>
-        requires (std::same_as<std::ranges::range_value_t<Rng>, char> && std::floating_point<Target>)
-        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, std::chars_format fmt = std::chars_format::general) const noexcept {
-            auto const ptr = std::ranges::data(rng);
-            return (*this)(ptr, ptr + std::ranges::size(rng), fmt);
-        }
-
         template <std::ranges::input_range Rng>
         requires (std::same_as<std::ranges::range_value_t<Rng>, char> && std::integral<Target>)
-        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, int base = 10) const noexcept {
-            std::string const buffer(std::from_range, std::forward<Rng>(rng));
-            return (*this)(buffer.c_str(), buffer.c_str() + buffer.size(), base);
+        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, int base = 10) const
+        noexcept(noexcept(convert(std::forward<Rng>(rng), base))) {
+            return convert(std::forward<Rng>(rng), base);
         }
 
         template <std::ranges::input_range Rng>
         requires (std::same_as<std::ranges::range_value_t<Rng>, char> && std::floating_point<Target>)
-        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, std::chars_format fmt = std::chars_format::general) const noexcept {
-            std::string const buffer(std::from_range, std::forward<Rng>(rng));
-            return (*this)(buffer.c_str(), buffer.c_str() + buffer.size(), fmt);
+        [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(Rng && rng, std::chars_format fmt = std::chars_format::general) const
+        noexcept(noexcept(convert(std::forward<Rng>(rng), fmt))) {
+            return convert(std::forward<Rng>(rng), fmt);
         }
 
         [[nodiscard]] constexpr std::expected<Target, std::errc> operator()(const char * beg, const char * end, int base = 10) const noexcept
@@ -61,6 +47,28 @@ namespace eon::spark {
         }
 
     private:
+        template <std::ranges::input_range Rng>
+        [[nodiscard]] static consteval bool can_noexcept_convert() noexcept {
+            if constexpr (std::ranges::contiguous_range<Rng>) {
+                return noexcept(std::ranges::data(std::declval<Rng&>()) + std::ranges::size(std::declval<Rng&>()));
+            }
+            else {
+                return false;
+            }
+        }
+
+        template <std::ranges::input_range Rng, exists_in<int, std::chars_format> ParamT>
+        [[nodiscard]] constexpr std::expected<Target, std::errc> convert(Rng && rng, ParamT param) const noexcept(can_noexcept_convert<Rng>()) {
+            if constexpr (std::ranges::contiguous_range<Rng>) {
+                auto const ptr = std::ranges::data(rng);
+                return convert(ptr, ptr + std::ranges::size(rng), param);
+            }
+            else {
+                std::string const buffer(std::from_range, std::forward<Rng>(rng));
+                return convert(buffer.data(), buffer.data() + buffer.size(), param);
+            }
+        }
+
         template <exists_in<int, std::chars_format> ParamT>
         [[nodiscard]] constexpr std::expected<Target, std::errc> convert(const char * beg, const char * end, ParamT param) const noexcept {
             auto trimmed_beg = std::ranges::find_if_not(beg, end, [](char c){ return std::isspace(c); });
@@ -71,7 +79,7 @@ namespace eon::spark {
             Target value;
             auto const [ptr, ec] = std::from_chars(trimmed_beg, end, value, param);
             if (ec == std::errc()) {
-                if constexpr (ParsingMode == str_parsing_mode::strict) {
+                if constexpr (ParsingMode == str_parsing::strict) {
                     if (ptr != end) {
                         return std::unexpected(std::errc::invalid_argument);
                     }
@@ -82,7 +90,7 @@ namespace eon::spark {
         }
     };
 
-    template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
+    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
     requires (std::is_arithmetic_v<Target>)
     inline constexpr from_str_t<Target, ParsingMode> from_str;
 

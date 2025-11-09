@@ -70,7 +70,7 @@ namespace eon::spark::views {
     inline constexpr has_value_t has_value;
 
 
-    template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
+    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
     requires (std::is_arithmetic_v<Target>)
     struct from_str_t final : std::ranges::range_adaptor_closure<from_str_t<Target, ParsingMode>> {
         template <std::ranges::viewable_range Rng>
@@ -79,7 +79,7 @@ namespace eon::spark::views {
         }
     };
 
-    template <typename Target, str_parsing_mode ParsingMode = str_parsing_mode::relaxed>
+    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
     requires (std::is_arithmetic_v<Target>)
     inline constexpr from_str_t<Target, ParsingMode> from_str;
 
