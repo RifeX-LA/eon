@@ -13,6 +13,13 @@
 
 namespace eon::spark {
 
+    namespace detail {
+
+        template <typename T>
+        concept conversion_param = exists_in<T, int, std::chars_format>;
+
+    }
+
     enum class str_parsing {
         relaxed,
         strict
@@ -57,7 +64,7 @@ namespace eon::spark {
             }
         }
 
-        template <std::ranges::input_range Rng, exists_in<int, std::chars_format> ParamT>
+        template <std::ranges::input_range Rng, detail::conversion_param ParamT>
         [[nodiscard]] constexpr std::expected<Target, std::errc> convert(Rng && rng, ParamT param) const noexcept(can_noexcept_convert<Rng>()) {
             if constexpr (std::ranges::contiguous_range<Rng>) {
                 auto const ptr = std::ranges::data(rng);
@@ -69,7 +76,7 @@ namespace eon::spark {
             }
         }
 
-        template <exists_in<int, std::chars_format> ParamT>
+        template <detail::conversion_param ParamT>
         [[nodiscard]] constexpr std::expected<Target, std::errc> convert(const char * beg, const char * end, ParamT param) const noexcept {
             auto trimmed_beg = std::ranges::find_if_not(beg, end, [](char c){ return std::isspace(c); });
             if (trimmed_beg != end && *trimmed_beg == '+') {
@@ -98,16 +105,53 @@ namespace eon::spark {
     struct to_str_t final {
         template <std::integral T>
         [[nodiscard]] std::string operator()(T value, int base = 10) const {
-            std::array<char, std::numeric_limits<T>::digits + 1> buffer;
-            auto const result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, base);
-            return result.ec == std::errc() ? std::string(buffer.data(), result.ptr) : std::string();
+            return convert(value, base);
         }
 
         template <std::floating_point T>
         [[nodiscard]] std::string operator()(T value, std::chars_format fmt = std::chars_format::general) const {
-            std::array<char, std::numeric_limits<T>::max_exponent10 + 1> buffer;
-            auto const result = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, fmt);
-            return result.ec == std::errc() ? std::string(buffer.data(), result.ptr) : std::string();
+            return convert(value, fmt);
+        }
+
+        template <std::integral T, std::weakly_incrementable OutIt>
+        constexpr OutIt operator()(T value, OutIt output, int base = 10) const {
+            return convert(value, std::move(output), base);
+        }
+
+        template <std::floating_point T, std::weakly_incrementable OutIt>
+        constexpr OutIt operator()(T value, OutIt output, std::chars_format fmt = std::chars_format::general) const {
+            return convert(value, std::move(output), fmt);
+        }
+
+    private:
+        template <typename T>
+        requires (std::is_arithmetic_v<T>)
+        [[nodiscard]] static consteval std::size_t get_buffer_size() noexcept {
+            if constexpr (std::integral<T>) {
+                return std::numeric_limits<T>::digits + 2;
+            }
+            else {
+                return std::numeric_limits<T>::max_exponent10 + 50;
+            }
+        }
+
+        template <typename T, std::weakly_incrementable OutIt, detail::conversion_param ParamT>
+        requires (std::is_arithmetic_v<T>)
+        constexpr OutIt convert(T value, OutIt output, ParamT param) const {
+            std::array<char, get_buffer_size<T>()> buffer;
+            auto const [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, param);
+            if (ec == std::errc()) {
+                return std::ranges::copy(buffer.data(), ptr, std::move(output)).out;
+            }
+            return output;
+        }
+
+        template <typename T, detail::conversion_param ParamT>
+        requires (std::is_arithmetic_v<T>)
+        [[nodiscard]] std::string convert(T value, ParamT param) const {
+            std::array<char, get_buffer_size<T>()> buffer;
+            auto const [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value, param);
+            return ec == std::errc() ? std::string(buffer.data(), ptr) : std::string();
         }
     };
 
