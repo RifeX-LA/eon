@@ -27,7 +27,7 @@ namespace eon::mt {
     }
 
     /**
-     * @brief Returns the optimal number of hardware thread contexts for task size of <b>n</b>.
+     * @brief Returns the optimal number of hardware thread contexts for a task size of <b>n</b>.
      * Actually returns std::min(n, eon::mt::concurrent_available()).
      */
     [[nodiscard]] inline unsigned int concurrent_optimal(unsigned int const n) noexcept {

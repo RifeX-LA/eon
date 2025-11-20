@@ -4,61 +4,25 @@ This library provides useful functions to work in multithreaded applications.
 
 Features:
 
-1. Get an available number of hardware thread contexts or 1 if this information is not available.
+1. 4 functions to get number of hardware thread contexts:
     ```c++
-    std::cout << eon::mt::available();
+    eon::mt::available();
+    eon::mt::concurrent_availalbe();
+    eon::mt::optimal(size);
+    eon::mt::concurrent_optimal(size);
     ```
-   
-    Possible output:
-    ```
-    8
-    ```
-    or `1` if the information is not available.
 
 
-2. Get the number of hardware thread contexts or 2 if this information is unavailable (usefull when you want to use at least 2 threads).
-
-    ```c++
-    std::cout << eon::mt::concurrent_availalbe();
-    ```
-   
-    Possible output:
-    ```
-    8
-    ```
-    or `2` if the information is not available.
-
-
-3. Get the optimal number of hardware thread contexts for task size of `n`. Which means that the `n` is the maximum number, that function can return. The minimum return value is n, if n is less than 2, or 1 otherwise.
-
-    ```c++
-    std::cout << eon::mt::optimal(100) << std::endl;
-    std::cout << eon::mt::optimal(2) << std::endl;
-    std::cout << eon::mt::optimal(0) << std::endl;
-    ```
-   
-    Possible output:
-    ```
-    8
-    2
-    0
-    ```
-   
-4. Get the optimal number of hardware thread contexts for task size of `n`. Which means that the `n` is the maximum number, that function can return. The minimum return value is n, if n is less than 2, or 2 otherwise.
-    
-    ```c++
-    std::cout << eon::mt::concurrent_optimal(100) << std::endl;
-    std::cout << eon::mt::concurrent_optimal(2) << std::endl;
-    std::cout << eon::mt::concurrent_optimal(0) << std::endl;
-    ```
-   
-    Possible output:
-    ```
-    8
-    2
-    0
+2. 2 functions (6 overloads) to parallelize _for_ loop:
+   ```c++
+    eon::mt::for_each(rng, fn);
+    eon::mt::for_each(beg, end, fn);
+    eon::mt::for_each(exec_policy, rng, fn);
+    eon::mt::for_each(exec_policy, beg, end, fn);
+    eon::mt::for_each_chunk(rng, fn);
+    eon::mt::for_each_chunk(beg, end, fn);
     ```
 
 # Requirements
 
-C++17
+C++20

@@ -1,12 +1,13 @@
 #include <iostream>
+#include <syncstream>
 
 #include <eon/mt.hpp>
 
 int main() {
-    std::cout << eon::mt::available() << std::endl;
-    std::cout << eon::mt::concurrent_available() << std::endl;
-    std::cout << eon::mt::optimal(5) << std::endl;
-    std::cout << eon::mt::concurrent_optimal(5) << std::endl;
+    eon::mt::for_each(std::initializer_list{1, 2, 3, 4, 5}, [](int i) {
+        std::osyncstream os(std::cout);
+        os << i << std::endl;
+    });
 
     return 0;
 }
