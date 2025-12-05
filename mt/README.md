@@ -13,7 +13,7 @@ Features:
     ```
 
 
-2. 2 functions (6 overloads) to parallelize _for_ loop:
+2. 4 functions (10 overloads) to parallelize _for_ loop:
    ```c++
     eon::mt::for_each(rng, fn);
     eon::mt::for_each(beg, end, fn);
@@ -21,7 +21,14 @@ Features:
     eon::mt::for_each(exec_policy, beg, end, fn);
     eon::mt::for_each_chunk(rng, fn);
     eon::mt::for_each_chunk(beg, end, fn);
+   
+    eon::mt::for_each_async(beg, end, fn, policy);
+    eon::mt::for_each_async(rng, fn, policy);
+    eon::mt::for_each_chunk_async(rng, fn, policy);
+    eon::mt::for_each_chunk_async(beg, end, fn, policy);
     ```
+      
+   All the `_async` functions return `std::vector<std::future<T>>`, where `T` is the invoke result of `fn`   
 
 # Requirements
 

@@ -9,5 +9,15 @@ int main() {
         os << i << std::endl;
     });
 
+    std::cout << "\nSquares:\n";
+
+    auto results = eon::mt::for_each_async(std::initializer_list{10, 15, 20}, [](int i) {
+        return i * i;
+    }, std::launch::async);
+
+    for (auto & result : results) {
+        std::cout << result.get() << std::endl;
+    }
+
     return 0;
 }
