@@ -32,7 +32,7 @@ namespace eon::spark {
             };
 
             template <typename T>
-            [[nodiscard]] static consteval std::pair<strategy, bool> choose() noexcept {
+            [[nodiscard]] static consteval eon::detail::choice_t<strategy> choose() noexcept {
                 if constexpr (has_member<T, I>) {
                     return {strategy::member, noexcept(std::declval<T>().template get<I>())};
                 }
@@ -40,7 +40,7 @@ namespace eon::spark {
                     return {strategy::adl, noexcept(get<I>(std::declval<T>()))};
                 }
                 else {
-                    return {strategy::none, false};
+                    return {strategy::none};
                 }
             }
 
@@ -49,9 +49,9 @@ namespace eon::spark {
 
         public:
             template <typename T>
-            requires (choice<T>.first != strategy::none)
-            [[nodiscard]] constexpr decltype(auto) operator()(T && value) const noexcept(choice<T>.second) {
-                static constexpr auto strat = choice<T>.first;
+            requires (choice<T>.strategy != strategy::none)
+            [[nodiscard]] constexpr decltype(auto) operator()(T && value) const noexcept(choice<T>.nothrow) {
+                static constexpr auto strat = choice<T>.strategy;
 
                 if constexpr (strat == strategy::member) {
                     return std::forward<T>(value).template get<I>();
@@ -126,7 +126,7 @@ namespace eon::spark {
             };
 
             template <typename Rng>
-            [[nodiscard]] static consteval std::pair<strategy, bool> choose() noexcept {
+            [[nodiscard]] static consteval eon::detail::choice_t<strategy> choose() noexcept {
                 if constexpr (has_member<Rng>) {
                     return {strategy::member, noexcept(std::declval<Rng>().front())};
                 }
@@ -140,8 +140,8 @@ namespace eon::spark {
 
         public:
             template <std::ranges::forward_range Rng>
-            [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(choice<Rng>.second) {
-                static constexpr auto strat = choice<Rng>.first;
+            [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(choice<Rng>.nothrow) {
+                static constexpr auto strat = choice<Rng>.strategy;
 
                 if constexpr (strat == strategy::member) {
                     return std::forward<Rng>(rng).front();
@@ -180,12 +180,12 @@ namespace eon::spark {
             template <typename It, std::sentinel_for<It> Sent>
             [[nodiscard]] static constexpr It find_prev_end(It it, Sent const sent)
             noexcept(std::is_nothrow_copy_constructible_v<It> && std::is_nothrow_copy_assignable_v<It> && noexcept(++it == sent)) {
-                for (auto next = std::ranges::next(it); next != sent; it = next, ++next) {}
+                for (auto next = std::ranges::next(it); next != sent; ++it, ++next) {}
                 return it;
             }
 
             template <typename Rng>
-            [[nodiscard]] static consteval std::pair<strategy, bool> choose() noexcept {
+            [[nodiscard]] static consteval eon::detail::choice_t<strategy> choose() noexcept {
                 if constexpr (has_member<Rng>) {
                     return {strategy::member, noexcept(std::declval<Rng>().back())};
                 }
@@ -205,8 +205,8 @@ namespace eon::spark {
 
         public:
             template <std::ranges::forward_range Rng>
-            [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(choice<Rng>.second) {
-                static constexpr auto strat = choice<Rng>.first;
+            [[nodiscard]] constexpr decltype(auto) operator()(Rng && rng) const noexcept(choice<Rng>.nothrow) {
+                static constexpr auto strat = choice<Rng>.strategy;
 
                 if constexpr (strat == strategy::member) {
                     return std::forward<Rng>(rng).back();

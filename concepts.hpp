@@ -101,4 +101,15 @@ namespace eon {
     template <typename T>
     concept pair_like = tuple_like<T> && std::tuple_size_v<std::remove_cvref_t<T>> == 2;
 
+
+    namespace detail {
+
+        template <typename StrategyT>
+        struct choice_t {
+            StrategyT strategy = StrategyT{};
+            bool nothrow = false;
+        };
+
+    }
+
 }
