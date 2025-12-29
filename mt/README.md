@@ -33,6 +33,8 @@ Features:
 
 3. thread pool (`eon::mt::thread_pool<R>`)
 
+4. `eon::mt::unique_lock` - like `std::unique_lock` but for multiple mutexes
+
 # Requirements
 
 C++20
