@@ -30,6 +30,9 @@ Features:
       
    All the `_async` functions return `std::vector<std::future<T>>`, where `T` is the invoke result of `fn`   
 
+
+3. thread pool (`eon::mt::thread_pool<R>`)
+
 # Requirements
 
 C++20

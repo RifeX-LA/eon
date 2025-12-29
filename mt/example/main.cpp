@@ -4,20 +4,19 @@
 #include <eon/mt.hpp>
 
 int main() {
-    eon::mt::for_each(std::initializer_list{1, 2, 3, 4, 5}, [](int i) {
-        std::osyncstream os(std::cout);
-        os << i << std::endl;
+    eon::mt::thread_pool<int> thread_pool;
+
+    auto future1 = thread_pool.add_task([] {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        return 42;
     });
 
-    std::cout << "\nSquares:\n";
+    auto future2 = thread_pool.add_task([] {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        return 12;
+    });
 
-    auto results = eon::mt::for_each_async(std::initializer_list{10, 15, 20}, [](int i) {
-        return i * i;
-    }, std::launch::async);
-
-    for (auto & result : results) {
-        std::cout << result.get() << std::endl;
-    }
+    std::cout << future1.get() << ' ' << future2.get() << std::endl;
 
     return 0;
 }
