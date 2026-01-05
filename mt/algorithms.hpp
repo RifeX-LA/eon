@@ -107,16 +107,16 @@ namespace eon::mt {
                                             std::invoke_result_t<Fn, iter_t, iter_t>,
                                             std::invoke_result_t<Fn, std::ranges::subrange<iter_t>>>;
 
-        using container_t = std::vector<std::future<result_t>>;
+        using futures_container_t = std::vector<std::future<result_t>>;
 
         if (std::ranges::empty(rng)) {
-            return container_t{};
+            return futures_container_t{};
         }
 
         std::size_t const size = std::ranges::distance(rng);
         std::size_t const threads_count = concurrent_optimal(size);
 
-        container_t futures;
+        futures_container_t futures;
         futures.reserve(threads_count);
 
         auto it = std::ranges::begin(rng);
