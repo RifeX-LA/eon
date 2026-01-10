@@ -102,6 +102,56 @@ namespace eon {
     concept pair_like = tuple_like<T> && std::tuple_size_v<std::remove_cvref_t<T>> == 2;
 
 
+    template <typename T, typename U>
+    concept view_of = std::ranges::view<T> && std::same_as<std::ranges::range_value_t<T>, U>;
+
+    template <typename T, typename U>
+    concept range_of = std::ranges::range<T> && std::same_as<std::ranges::range_value_t<T>, U>;
+
+    template <typename T, typename U>
+    concept input_range_of = std::ranges::input_range<T> && range_of<T, U>;
+
+    template <typename T, typename U>
+    concept forward_range_of = std::ranges::forward_range<T> && range_of<T, U>;
+
+    template <typename T, typename U>
+    concept bidirectional_range_of = std::ranges::bidirectional_range<T> && range_of<T, U>;
+
+    template <typename T, typename U>
+    concept random_access_range_of = std::ranges::random_access_range<T> && range_of<T, U>;
+
+    template <typename T, typename U>
+    concept contiguous_range_of = std::ranges::contiguous_range<T> && range_of<T, U>;
+
+    template <typename T>
+    concept range_of_characters = std::ranges::range<T> && character<std::ranges::range_value_t<T>>;
+
+
+    template <typename T>
+    concept character_ptr = std::is_pointer_v<std::remove_reference_t<T>> && character<std::remove_pointer_t<std::remove_reference_t<T>>>;
+
+    template <typename T>
+    concept character_array = std::is_array_v<std::remove_reference_t<T>> && character<std::remove_extent_t<std::remove_reference_t<T>>>;
+
+    template <typename T>
+    concept bounded_character_array = std::is_bounded_array_v<std::remove_reference_t<T>> && character<std::remove_extent_t<std::remove_reference_t<T>>>;
+
+    template <typename T>
+    concept unbounded_character_array = std::is_unbounded_array_v<std::remove_reference_t<T>> && character<std::remove_extent_t<std::remove_reference_t<T>>>;
+
+
+    template <typename T>
+    concept string_like = specialization_of<T, std::basic_string> || specialization_of<T, std::basic_string_view> ||
+                          character_ptr<T> || character_array<T>;
+
+    template <typename T>
+    concept sized_string_like = specialization_of<T, std::basic_string> || specialization_of<T, std::basic_string_view> ||
+                                  bounded_character_array<T>;
+
+    template <typename T>
+    concept unsized_string_like = character_ptr<T> || unbounded_character_array<T>;
+
+
     namespace detail {
 
         template <typename StrategyT>
