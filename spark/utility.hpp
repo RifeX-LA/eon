@@ -240,4 +240,5 @@ namespace eon::spark {
     };
 
     inline constexpr invoke_t invoke;
+
 }

@@ -176,6 +176,16 @@ namespace eon::spark::views {
     inline constexpr invoke_t invoke;
 
 
+    struct make_input_str_t final : std::ranges::range_adaptor_closure<make_input_str_t> {
+        template <std::ranges::viewable_range Rng>
+        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+            return std::views::transform(std::forward<Rng>(rng), spark::make_input_str);
+        }
+    };
+
+    inline constexpr make_input_str_t make_input_str;
+
+
 #ifdef EON_SPARK_INCLUDE_BOOST
 
     template <typename Target>
