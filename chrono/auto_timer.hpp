@@ -55,9 +55,7 @@ namespace eon::chrono {
     template <typename Rep = double, typename Period = std::ratio<1>, writing_time_unit Opt = writing_time_unit::enable>
     using u32auto_timer = basic_auto_timer<Rep, Period, char32_t, std::char_traits<char32_t>, Opt>;
 
-#ifdef __cpp_lib_char8_t
     template <typename Rep = double, typename Period = std::ratio<1>, writing_time_unit Opt = writing_time_unit::enable>
     using u8auto_timer = basic_auto_timer<Rep, Period, char8_t, std::char_traits<char8_t>, Opt>;
-#endif
 
 }

@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <variant>
 
 #include <eon/concepts.hpp>
 
@@ -56,6 +57,103 @@ namespace eon {
         else {
             return std::forward<T>(value);
         }
+    }
+
+
+    template <typename...>
+    struct type_pack {};
+
+
+    namespace detail {
+        template <typename TupleLike, typename IndexSeq>
+        struct make_tuple_type_pack {};
+
+        template <typename TupleLike, std::size_t... I>
+        struct make_tuple_type_pack<TupleLike, std::index_sequence<I...>> : type_pack<std::tuple_element_t<I, TupleLike>...> {};
+
+
+        template <typename VariantT, typename IndexSeq>
+        struct make_variant_type_pack {};
+
+        template <typename VariantT, std::size_t... I>
+        struct make_variant_type_pack<VariantT, std::index_sequence<I...>> : type_pack<std::variant_alternative_t<I, VariantT>...> {};
+    }
+
+    template <without_ref T>
+    requires (tuple_like<T> || specialization_of<T, std::variant> || specialization_of<T, type_pack>)
+    struct make_type_pack : std::conditional_t<specialization_of<T, type_pack>,
+                                T,
+                                std::conditional_t<tuple_like<T>,
+                                    detail::make_tuple_type_pack<T, std::make_index_sequence<std::tuple_size_v<T>>>,
+                                    detail::make_variant_type_pack<T, std::make_index_sequence<std::variant_size_v<T>>>
+                                >
+                            > {};
+
+
+    template <typename Fn, typename... Types>
+    concept invocable_for_types =  (std::invocable<Fn, std::type_identity<Types>> && ...);
+
+    namespace detail {
+        template <typename Fn, typename Pack>
+        struct invocable_for_type_pack : std::false_type {};
+
+        template <typename Fn, typename... Types>
+        struct invocable_for_type_pack<Fn, type_pack<Types...>> : std::bool_constant<invocable_for_types<Fn, Types...>> {};
+    }
+
+    template <typename Fn, typename T>
+    concept invocable_for_packed_types = detail::invocable_for_type_pack<Fn, make_type_pack<T>>::value;
+
+
+    template <typename Fn, typename... Types>
+    struct is_nothrow_invocable_for_types : std::bool_constant<(std::is_nothrow_invocable_v<Fn, std::type_identity<Types>> && ...)> {};
+
+    template <typename Fn, typename... Types>
+    constexpr inline bool is_nothrow_invocable_for_types_v = is_nothrow_invocable_for_types<Fn, Types...>::value;
+
+
+    namespace detail {
+        template <typename Fn, typename Pack>
+        struct is_nothrow_invocable_for_packed_types : std::false_type {};
+
+        template <typename Fn, typename... Types>
+        struct is_nothrow_invocable_for_packed_types<Fn, type_pack<Types...>> : is_nothrow_invocable_for_types<Fn, Types...> {};
+    }
+
+    template <typename Fn, typename T>
+    struct is_nothrow_invocable_for_packed_types : detail::is_nothrow_invocable_for_packed_types<Fn, make_type_pack<T>> {};
+
+    template <typename Fn, typename T>
+    constexpr inline bool is_nothrow_invocable_for_packed_types_v = is_nothrow_invocable_for_packed_types<Fn, T>::value;
+
+
+    template <typename... Types, invocable_for_types<Types...> Fn>
+    constexpr void for_each_type(Fn fn) noexcept(is_nothrow_invocable_for_types_v<Fn, Types...>) {
+        (fn(std::type_identity<Types>{}), ...);
+    }
+
+    template <without_ref T, invocable_for_packed_types<T> Fn>
+    constexpr void for_each_type_in_pack(Fn fn) noexcept(is_nothrow_invocable_for_packed_types_v<Fn, T>) {
+        [fn = pass_fn(fn)]<typename... Types>(type_pack<Types...>) {
+           for_each_type<Types...>(fn);
+        }(make_type_pack<T>{});
+    }
+
+
+    template <without_ref T, typename Fn>
+    requires (tuple_like<T>)
+    constexpr void for_each_tuple_element(Fn fn) {
+       [fn = pass_fn(fn)]<std::size_t... I>(std::index_sequence<I...>) {
+            (fn(std::tuple_element<I, T>{}), ...);
+        }(std::make_index_sequence<std::tuple_size_v<T>>{});
+    }
+
+    template <without_ref T, typename Fn>
+    requires (specialization_of<T, std::variant>)
+    constexpr void for_each_variant_alternative(Fn fn) {
+        [fn = pass_fn(fn)]<std::size_t... I>(std::index_sequence<I...>) {
+            (fn(std::variant_alternative<I, T>{}), ...);
+        }(std::make_index_sequence<std::variant_size_v<T>>{});
     }
 
 }

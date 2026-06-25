@@ -7,6 +7,8 @@
 #include <queue>
 #include <set>
 #include <functional>
+#include <span>
+#include <ranges>
 
 #include <eon/concepts.hpp>
 #include <eon/mt/concurrency_info.hpp>
@@ -48,9 +50,10 @@ namespace eon::mt {
 
         void force_resize(unsigned threads_count) {
             if (threads_count < m_threads.size()) {
-                std::size_t const threads_count_to_stop = m_threads.size() - threads_count;
-                auto ids_to_stop = std::span(m_threads).last(threads_count_to_stop) | std::views::transform(&std::jthread::get_id);
                 {
+                    std::size_t const threads_count_to_stop = m_threads.size() - threads_count;
+                    auto ids_to_stop = std::span(m_threads).last(threads_count_to_stop) | std::views::transform(&std::jthread::get_id);
+
                     std::scoped_lock lock(m_force_stop_mutex);
                     m_threads_to_force_stop.insert_range(ids_to_stop);
                 }

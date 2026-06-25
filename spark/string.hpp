@@ -1,13 +1,13 @@
 #pragma once
 
-#include <expected>
-#include <concepts>
-#include <ranges>
 #include <algorithm>
-#include <charconv>
-#include <string>
 #include <array>
+#include <charconv>
+#include <concepts>
+#include <expected>
 #include <limits>
+#include <ranges>
+#include <string>
 
 #include <eon/concepts.hpp>
 
@@ -20,7 +20,7 @@ namespace eon::spark {
 
     }
 
-    enum class str_parsing {
+    enum class str_parsing : std::uint8_t {
         relaxed,
         strict
     };

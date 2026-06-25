@@ -186,6 +186,15 @@ namespace eon::spark::views {
     inline constexpr make_input_str_t make_input_str;
 
 
+    struct range_from_nullable_t final : std::ranges::range_adaptor_closure<range_from_nullable_t> {
+        template <std::ranges::viewable_range Rng>
+        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+            return std::views::transform(std::forward<Rng>(rng), spark::range_from_nullable);
+        }
+    };
+
+    inline constexpr range_from_nullable_t range_from_nullable;
+
 #ifdef EON_SPARK_INCLUDE_BOOST
 
     template <typename Target>

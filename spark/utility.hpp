@@ -8,6 +8,7 @@
 
 #include <eon/concepts.hpp>
 #include <eon/utility.hpp>
+#include <eon/nullable.hpp>
 
 namespace eon::spark {
 
@@ -240,5 +241,23 @@ namespace eon::spark {
     };
 
     inline constexpr invoke_t invoke;
+
+
+    struct range_from_nullable_t final {
+        template <nullable T>
+        requires (std::ranges::range<nullable_value_t<T>>)
+        [[nodiscard]] constexpr std::ranges::range auto operator()(T && value) const {
+            using rng_t = nullable_value_t<T>;
+            using subrange_t = std::ranges::subrange<std::ranges::iterator_t<rng_t>, std::ranges::sentinel_t<rng_t>>;
+
+            if (value) {
+                auto && rng = *std::forward<T>(value);
+                return subrange_t(std::ranges::begin(rng), std::ranges::end(rng));
+            }
+            return subrange_t{};
+        }
+    };
+
+    inline constexpr range_from_nullable_t range_from_nullable;
 
 }
