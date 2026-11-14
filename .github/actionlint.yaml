@@ -1,0 +1,5 @@
+# Ubuntu 26.04 is a GitHub-hosted image, but actionlint 1.7.12's built-in
+# runner-label table predates it. Extend the validator's accepted labels.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04

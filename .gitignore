@@ -4,6 +4,7 @@
 .vscode
 .zed
 build
+build-tests/
 # User-specific stuff
 .idea/**/workspace.xml
 .idea/**/tasks.xml

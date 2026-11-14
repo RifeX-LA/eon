@@ -1,29 +1,26 @@
-# Overview
+# Lifetime
 
-This is a lifetime class for check if object creation, destruction, assignments and other operations took place.
+Include `<eon/lifetime.hpp>`. `eon::lifetime` logs construction, assignment,
+comparison and destruction through `std::println`. It requires C++23 printing
+and formatting support.
 
-**Example**
-
-```c++
+```cpp
 #include <eon/lifetime.hpp>
 
 int main() {
-    eon::lifetime l1;
-    auto l2 = l1;
-
-    return 0;
+    eon::lifetime first(7);
+    auto second = first;
+    auto id = second.id();               // 7
+    auto living = eon::lifetime::alive(); // 2 at this point
 }
-
 ```
 
-Output
-```
-lifetime() [default constructor]
-lifetime(lifetime const &) [copy constructor]
-~lifetime(0) [destructor]
-~lifetime(0) [destructor]
-```
+`total()` counts constructions since program start, including copies and moves.
+`alive()` counts currently living instances. Assignment changes the ID but does
+not increment construction counters. Counters are shared across translation
+units and are not synchronized for concurrent access.
 
-# Requirements
-
-C++23
+Comparisons use IDs. Stream insertion and `std::format` produce
+`lifetime(id)`; these operations and comparisons take operands by value and
+may themselves log copies and destruction. Move construction copies the ID
+without clearing the source.

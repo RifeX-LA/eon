@@ -1,70 +1,79 @@
 #pragma once
 
-#include <iosfwd>
 #include <algorithm>
+#include <istream>
 
 #include <eon/concepts.hpp>
 #include <eon/spark/string.hpp>
 
 namespace eon::tpl::detail {
 
-    template <character CharT, typename Traits>
-    [[nodiscard]] bool expect_char(std::basic_istream<CharT, Traits> & is, CharT expected) {
-        return Traits::to_char_type(is.get()) == expected;
-    }
+template <character CharT, typename Traits>
+[[nodiscard]] bool expect_char(std::basic_istream<CharT, Traits> & is, CharT expected) {
+    auto const value = is.get();
+    return !Traits::eq_int_type(value, Traits::eof()) && Traits::to_char_type(value) == expected;
+}
 
-    template <character CharT, typename Traits>
-    bool accept_char(std::basic_istream<CharT, Traits> & is, CharT expected) {
-        if (!expect_char(is, expected)) {
-            is.unget();
-            is.setstate(std::basic_istream<CharT, Traits>::failbit);
+template <character CharT, typename Traits>
+bool accept_char(std::basic_istream<CharT, Traits> & is, CharT expected) {
+    auto const value = is.peek();
+    if (Traits::eq_int_type(value, Traits::eof()) || Traits::to_char_type(value) != expected) {
+        is.setstate(std::basic_istream<CharT, Traits>::failbit);
+        return false;
+    }
+    is.get();
+    return true;
+}
+
+template <character CharT, typename Traits, std::ranges::input_range Rng>
+requires character<std::ranges::range_value_t<Rng>>
+bool accept_range(std::basic_istream<CharT, Traits> & is, Rng && expected_rng) {
+    if (!is) {
+        return false;
+    }
+    auto * streambuf = is.rdbuf();
+    using pos_type = typename Traits::pos_type;
+    auto const invalid_pos = pos_type(typename Traits::off_type(-1));
+    auto const start = streambuf->pubseekoff(0, std::ios_base::cur, std::ios_base::in);
+    std::basic_string<CharT, Traits> consumed;
+    if constexpr (std::ranges::sized_range<Rng>) {
+        consumed.reserve(std::ranges::size(expected_rng));
+    }
+    for (auto symbol : expected_rng) {
+        CharT const expected = static_cast<CharT>(symbol);
+        // Delay setting failbit until rollback is complete, including when
+        // the caller enabled exceptions for failbit/eofbit.
+        auto const value = streambuf->sbumpc();
+        bool const eof = Traits::eq_int_type(value, Traits::eof());
+        if (!eof) {
+            consumed.push_back(Traits::to_char_type(value));
+        }
+        if (eof || consumed.back() != expected) {
+            bool restored = start != invalid_pos && streambuf->pubseekpos(start, std::ios_base::in) != invalid_pos;
+            if (!restored) {
+                restored = true;
+                for (CharT actual : consumed | std::views::reverse) {
+                    if (Traits::eq_int_type(streambuf->sputbackc(actual), Traits::eof())) {
+                        restored = false;
+                        break;
+                    }
+                }
+            }
+            // EOF from the failed attempt must not hide restored characters.
+            auto state = is.rdstate() & std::ios_base::badbit;
+            if (!restored) {
+                state |= std::ios_base::badbit;
+            }
+            is.clear(state | std::ios_base::failbit);
             return false;
         }
-        return true;
     }
-
-    template <character CharT, typename Traits, input_range_of<CharT> Rng>
-    bool accept_range(std::basic_istream<CharT, Traits> & is, Rng && expected_rng) {
-        auto putback_on_failure = [&](bidirectional_range_of<CharT> auto && rng) {
-            for (CharT const c : rng | std::views::reverse) {
-                is.putback(c);
-            }
-            is.setstate(std::basic_istream<CharT, Traits>::failbit);
-        };
-
-        if constexpr (std::ranges::bidirectional_range<Rng>) {
-            auto it = std::ranges::find_if(expected_rng, [&](CharT expected) {
-                return !expect_char(is, expected);
-            });
-
-            if (it != std::ranges::end(expected_rng)) {
-                putback_on_failure(std::ranges::subrange(std::ranges::begin(expected_rng), ++it));
-                return false;
-            }
-        }
-        else {
-            std::basic_string<CharT, Traits> buffer;
-            if constexpr (std::ranges::sized_range<Rng>) {
-                buffer.reserve(std::ranges::size(expected_rng));
-            }
-
-            auto save_to_buffer_and_compare = [&](CharT expected) {
-                buffer += expected;
-                return expect_char(is, expected);
-            };
-
-            if (!std::ranges::all_of(expected_rng, save_to_buffer_and_compare)) {
-                putback_on_failure(buffer);
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    template <character CharT, typename Traits>
-    bool accept_range(std::basic_istream<CharT, Traits> & is, CharT const * str) {
-        return accept_range(is, spark::make_input_str(str));
-    }
-
+    return true;
 }
+
+template <character CharT, typename Traits, character SepChar>
+bool accept_range(std::basic_istream<CharT, Traits> & is, SepChar const * str) {
+    return accept_range(is, spark::make_input_str(str));
+}
+
+} // namespace eon::tpl::detail

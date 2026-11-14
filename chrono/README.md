@@ -1,117 +1,53 @@
-# Overview
+# Chrono
 
-This is header-only library that provide `std::chrono` based timers. No external dependencies. All timers are in `eon::chrono` namespace.
+Include `<eon/chrono.hpp>`. Timers are in `eon::chrono` and use
+`std::chrono::steady_clock`. The project targets C++23.
 
-### Basic timer
+## Timer
 
-Represented by the `eon::chrono::timer` class.
+`timer<Rep = double, Period = std::ratio<1>>` defaults to floating-point seconds.
+`Period` must be a duration period accepted by `std::chrono::duration`.
 
-Features:
+```cpp
+#include <eon/chrono.hpp>
 
-1. Initialization
+eon::chrono::timer<> timer;
+auto elapsed = timer.elapsed();       // Rep: double seconds
+auto duration = timer.duration();     // std::chrono::duration<double>
+auto started = timer.time_point();    // last construction/reset time
+timer.reset();
 
-    Use default `rep_type` (`double`) and `period_type` (`std::ratio<1>`, which means seconds)
-    ```c++
-    eon::chrono::timer timer;
-    ```
+auto [work_duration, result] =
+    eon::chrono::timer<>::duration_r([] { return 42; });
+auto average = eon::chrono::timer<>::avg_elapsed(100, [] {});
+```
 
-    Specify `rep_type` and `period_type`
-    ```c++
-    eon::chrono::timer<int, std::milli> timer;
-    ```
-   
-   **`period_type` must be an instance of `std::ratio`**
+Static `duration(fn, args...)` and `elapsed(fn, args...)` measure one invocation.
+The `_r` versions return a pair of the measurement and the non-void invocation
+result, preserving its reference type. `avg_duration` and `avg_elapsed` invoke
+the callable `count` times; zero throws `std::invalid_argument` before invoking
+it. Integral representations truncate fractional ticks.
 
+## Automatic output
 
-2. Get elapsed time of code fragment
-   ```c++
-    eon::chrono::timer timer;
-    // Some work here
-    auto elapsed = timer.elapsed();
-    ```
-   
-3. Get elapsed time of any callable object
-   ```c++
-   auto elapsed = eon::chrono::timer<>::elapsed(
-       // any callable object,
-       // callable object arguments...
-   );
-    ```
+`basic_auto_timer<Rep, Period, CharT, Traits, Opt>` derives from `timer` and
+requires a stream in its constructor. Destruction writes the elapsed count and,
+by default, its unit suffix. There is no default output stream or prefix argument.
 
-4. Get elapsed time and return the result of any callable object. The type of the result must not be `void`
-   ```c++
-   // unpack std::pair
-   auto [elapsed, result] = eon::chrono::timer<>::duration_r(
-       // any callable object,
-       // callable object arguments...
-   );
-    ```
-   
-5. Get average execution time
-   ```c++
-   auto avg = eon::chrono::timer<>::avg_elapsed(
-       // count of iterations,
-       // any callable object,
-       // callable object arguments...        
-   );
-   ```
+```cpp
+#include <iostream>
+#include <eon/chrono.hpp>
 
-6. Reset the timer
-    ```c++
-    eon::chrono::timer timer;
-    // Some work here
-    timer.reset();
-    ```
-   
-7. Get the moment when the timer was started (or was reset)
-   ```c++
-   timer.started_in();
-   ```
-   
-**All the _elapsed_ functions have their analogue for duration**. For example `eon::chrono::timer<>::duration()`, `eon::chrono::timer<>::avg_duration()`, etc.
+{
+    std::cout << "Elapsed: ";
+    eon::chrono::auto_timer<double, std::milli> timer(std::cout);
+    // Destruction writes a value such as 1.25ms, without a newline.
+}
+```
 
-### Auto timers
-
-These types of timers are automatically output elapsed time in their destructors **with time units**. They have all the features of `eon::chrono::timer`.
-
-Presented by 3 classes:
-
-* `eon::timer::basic_auto_timer` - base class for all auto timers
-* `eon::timer::auto_timer` - auto timer for a stream of `char`
-* `eon::timer::wauto_timer` - auto timer for a stream of `wchar_t`
-
-Features:
-
-1. Initialization
-
-   ```c++
-   std::ofstream ouput("output");   
-
-   eon::chrono::auto_timer auto_timer1; // use default - std::cout and empty prefix message
-   eon::chrono::auto_timer auto_timer2(output); // write elapsed time to output with empty prefix message
-   eon::chrono::auto_timer auto_timer3(std::cout, "Elapsed time is ") // write elapsed time to output with given prefix message; 
-   ```
-   
-2. Writing time units:
-   
-   **Time units will be written by default**. If you don't want that, provide `eon::chrono::writing_time_unit::disable` value as template parameter.
-
-   ```c++
-   eon::chrono::auto_timer<std::uintmax_t, std::milli> auto_timer(std::cout, "Elapsed time is ");
-   // some code here...
-   ```
-   
-   Possible output:
-   ```
-   Elapsed time is 120ms
-   ```
-   
-   ```c++
-   eon::chrono::auto_timer<std::uintmax_t, std::milli, eon::chrono::writing_time_unit::disable> auto_timer(std::cout, "Elapsed time is ");
-   // some code here...
-   // time unit will be not written
-   ```
-
-# Requirements
-
-C++20
+Aliases exist for `auto_timer`, `wauto_timer`, `u8auto_timer`, `u16auto_timer`
+and `u32auto_timer`. They select the stream character type; the stream must
+support numeric insertion for that type. Pass
+`writing_time_unit::disable` as the alias's third template argument to omit
+the suffix. The referenced stream must outlive the timer. Destructors are
+`noexcept`, so stream insertion must not throw.
