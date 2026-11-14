@@ -1,53 +1,39 @@
-# Overview
+# Nullable invocation
 
-This library provides useful utilities to work with _nullable_ types
+Include `<eon/nullable.hpp>`. Names are in `eon`; the project targets C++23.
 
-**_Nullable_** is a type that corresponds to serving criteria:
-* default constructible
-* convertible to `bool`
-* has `operator*()`
+`nullable<T>` requires a default-constructible underlying type, a conversion
+usable with `static_cast<bool>`, and dereferencing. Examples include `std::optional`,
+raw pointers and owning smart pointers.
 
-Features:
-* `eon::invoke_nullable()`
-* `eon::invoke_nullable_ref()`
+`invoke_nullable(callable, value, args...)` calls
+`std::invoke(callable, *value, args...)` only when `value` is present.
+A nullable invocation result is returned directly as a decayed value;
+a non-nullable result is wrapped in `std::optional`. Void callbacks are
+supported. An absent input returns an empty/default result without invoking
+the callable.
 
-The main purpose of these functions is to avoid double checks for the case 
-when the value of the function or field, which is a nullable object, 
-must be obtained from a nullable object.
+```cpp
+#include <optional>
+#include <eon/nullable.hpp>
 
-For example:
-
-```c++
 struct widget {
-    std::optional<int> opt_value;
-}
+    std::optional<int> number;
+};
 
-int main() {
-    std::optional<widget> opt_widget;
-    
-    // In common scenario you must double check to use widget::opt_value
-    if (opt_widget) {
-        if (opt_widget->opt_value) {
-            std::cout << *opt_widget->opt_value;
-        }
-        else {
-            std::cout << "empty";
-        }
-    }
-    else {
-        std::cout << "empty";
-    }
-    
-    // Now you can just use
-    if (auto const opt_value = eon::invoke_nullable(&widget::opt_value, opt_widget)) {
-        std::cout << *opt_value;
-    } 
-    else {
-        std::cout << "empty";
-    }
+std::optional<widget> object{widget{42}};
+auto copy = eon::invoke_nullable(&widget::number, object); // optional<int>
+auto pointer = eon::invoke_nullable_ref(&widget::number, object); // int*
+if (pointer) {
+    *pointer = 7; // changes object->number
 }
 ```
 
-# Requirements
+`invoke_nullable_ref` returns a pointer for lvalue-reference results. If that
+reference names a nullable object, the pointer refers to its contained value
+only when present. For other result categories it delegates to
+`invoke_nullable`. Returned pointers do not extend object lifetimes.
+Callable exceptions propagate.
 
-C++20
+`nullable_reference_t<T>` describes dereferencing `T`;
+`nullable_value_t<T>` removes the reference from that type.

@@ -1,24 +1,31 @@
-# Overview
+# Concepts
 
-The library with many useful concepts. 
+Include `<eon/concepts.hpp>`. Public concepts are in `eon`; the project targets C++23.
 
-Available features:
+| Group | Concepts |
+| --- | --- |
+| Qualifiers and identity | `decayed`, `without_cv`, `without_ref`, `without_cvref`, `ref_or_ptr`, `exists_in` |
+| Invocation | `indirectable`, `invocable_r`, `invocable_conv_r` |
+| Templates | `specialization_of`, `derived_from_specialization_of` |
+| Tuples | `tuple_like`, `pair_like` |
+| Ranges | `view_of`, `range_of`, `input_range_of`, `forward_range_of`, `bidirectional_range_of`, `random_access_range_of`, `contiguous_range_of` |
+| Characters | `character`, `range_of_characters`, `character_ptr`, `character_array`, `bounded_character_array`, `unbounded_character_array` |
+| Strings | `string_like`, `sized_string_like`, `unsized_string_like` |
 
-* `eon::decayed<T>` - is `T` decayed?
-* `eon::without_cv<T>` - does `T` haven't cv-qualifiers?
-* `eon::without_ref<T>` - is `T` a non-reference type?
-* `eon::without_cvref` - does `T` haven't cv-qualifiers or reference?
-* `eon::ref_or_ptr<T>` - is `T` a reference or pointer type?
-* `eon::exists_in<T, Types...>` - does `Types...` contain `T`?
-* `eon::character<T>` - is `T` a character type?
-* `eon::indirectable<T>` - does `T` have `operator*()`? 
-* `eon::invocable_r<Fn, R, Args...>` - is `Fn` invocable with `Args...` and the type of `Fn`'s invoke result is _exactly_ `R`?  
-* `eon::invocable_conv_r` - is `Fn` invocable with `Args...` and the type of `Fn`'s invoke result is _convertible to_ `R`
-* `eon::specialization_of<T, Template>` - is `T` an any specialization of `Template`?
-* `eon::derived_from_specialization_of<T, Template>` - did `T` derive from any specialization of `Template`?
-* `eon::tuple_like<T>` - is `T` a tuple-like object, i.e. it has `std::tuple_size<T>` and `std::tuple_element<I, T>` with ADL-founded `get<I>` for all `I` in [0, `std::tuple_size_v<T>`)?
-* `eon::pair_like<T>` - is `T` a tuple-like object with `std::tuple_size<T> == 2`?
+`invocable_r<Fn, R, Args...>` requires exactly `R` as the result type;
+`invocable_conv_r` allows conversion to `R`. The `*_range_of<R, V>` concepts
+compare the range value type with `V` exactly.
 
-# Requirements
+`tuple_like<T>` checks tuple size, element types and unqualified `get<I>` for
+mutable and const lvalues, with the expected reference return types. `pair_like`
+additionally requires two elements. The template-specialization concepts support
+templates whose parameters are types.
 
-C++20
+```cpp
+#include <vector>
+#include <eon/concepts.hpp>
+
+static_assert(eon::character<char8_t>);
+static_assert(eon::specialization_of<std::vector<int>, std::vector>);
+static_assert(eon::contiguous_range_of<std::vector<int>, int>);
+```

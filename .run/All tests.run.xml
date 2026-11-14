@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="All tests" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--output-on-failure --no-tests=error" WORKING_DIR="$CMakeCurrentLocalGenerationDir$" EXPLICIT_BUILD_TARGET_NAME="all" RUN_PATH="$APPLICATION_HOME_DIR$/bin/cmake/win/x64/bin/ctest.exe" CONFIG_NAME="Debug">
+    <method v="2">
+      <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      <option name="BeforeTestRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

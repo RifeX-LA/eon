@@ -3,8 +3,8 @@
 #include <ranges>
 
 #include <eon/spark/cast.hpp>
-#include <eon/spark/utility.hpp>
 #include <eon/spark/string.hpp>
+#include <eon/spark/utility.hpp>
 
 #ifdef EON_SPARK_INCLUDE_BOOST
 #include <boost/hof/construct.hpp>
@@ -12,218 +12,201 @@
 
 namespace eon::spark::views {
 
-    template <typename Target>
-    struct static_caster_t final : std::ranges::range_adaptor_closure<static_caster_t<Target>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::static_caster<Target>);
-        }
-    };
+template <typename Target>
+struct static_caster_t final : std::ranges::range_adaptor_closure<static_caster_t<Target>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::static_caster<Target>);
+    }
+};
 
-    template <typename Target>
-    inline constexpr static_caster_t<Target> static_caster;
+template <typename Target>
+inline constexpr static_caster_t<Target> static_caster;
 
+template <ref_or_ptr Target>
+struct dynamic_caster_t final : std::ranges::range_adaptor_closure<dynamic_caster_t<Target>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::dynamic_caster<Target>);
+    }
+};
 
-    template <ref_or_ptr Target>
-    struct dynamic_caster_t final : std::ranges::range_adaptor_closure<dynamic_caster_t<Target>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::dynamic_caster<Target>);
-        }
-    };
+template <ref_or_ptr Target>
+inline constexpr dynamic_caster_t<Target> dynamic_caster;
 
-    template <ref_or_ptr Target>
-    inline constexpr dynamic_caster_t<Target> dynamic_caster;
+template <typename Target>
+struct reinterpret_caster_t final : std::ranges::range_adaptor_closure<reinterpret_caster_t<Target>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::reinterpret_caster<Target>);
+    }
+};
 
+template <typename Target>
+inline constexpr reinterpret_caster_t<Target> reinterpret_caster;
 
-    template <typename Target>
-    struct reinterpret_caster_t final : std::ranges::range_adaptor_closure<reinterpret_caster_t<Target>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::reinterpret_caster<Target>);
-        }
-    };
+template <ref_or_ptr Target>
+struct const_caster_t final : std::ranges::range_adaptor_closure<const_caster_t<Target>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::const_caster<Target>);
+    }
+};
 
-    template <typename Target>
-    inline constexpr reinterpret_caster_t<Target> reinterpret_caster;
+template <ref_or_ptr Target>
+inline constexpr const_caster_t<Target> const_caster;
 
+struct has_value_t final : std::ranges::range_adaptor_closure<has_value_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::filter(std::forward<Rng>(rng), spark::has_value);
+    }
+};
 
-    template <ref_or_ptr Target>
-    struct const_caster_t final : std::ranges::range_adaptor_closure<dynamic_caster_t<Target>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::const_caster<Target>);
-        }
-    };
+inline constexpr has_value_t has_value;
 
-    template <ref_or_ptr Target>
-    inline constexpr const_caster_t<Target> const_caster;
+template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
+requires (std::is_arithmetic_v<Target>)
+struct from_str_t final : std::ranges::range_adaptor_closure<from_str_t<Target, ParsingMode>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::from_str<Target, ParsingMode>);
+    }
+};
 
+template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
+requires (std::is_arithmetic_v<Target>)
+inline constexpr from_str_t<Target, ParsingMode> from_str;
 
-    struct has_value_t final : std::ranges::range_adaptor_closure<has_value_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::filter(std::forward<Rng>(rng), spark::has_value);
-        }
-    };
+struct to_str_t final : std::ranges::range_adaptor_closure<to_str_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::to_str);
+    }
+};
 
-    inline constexpr has_value_t has_value;
+inline constexpr to_str_t to_str;
 
+template <std::size_t I>
+struct get_t final : std::ranges::range_adaptor_closure<get_t<I>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::get<I>);
+    }
+};
 
-    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
-    requires (std::is_arithmetic_v<Target>)
-    struct from_str_t final : std::ranges::range_adaptor_closure<from_str_t<Target, ParsingMode>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::from_str<Target, ParsingMode>);
-        }
-    };
+template <std::size_t I>
+inline constexpr get_t<I> get;
 
-    template <typename Target, str_parsing ParsingMode = str_parsing::relaxed>
-    requires (std::is_arithmetic_v<Target>)
-    inline constexpr from_str_t<Target, ParsingMode> from_str;
+struct indirect_t final : std::ranges::range_adaptor_closure<indirect_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::indirect);
+    }
+};
 
+inline constexpr indirect_t indirect;
 
-    struct to_str_t final : std::ranges::range_adaptor_closure<to_str_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::to_str);
-        }
-    };
+struct addressof_t final : std::ranges::range_adaptor_closure<addressof_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::addressof);
+    }
+};
 
-    inline constexpr to_str_t to_str;
+inline constexpr addressof_t addressof;
 
+struct to_underlying_t final : std::ranges::range_adaptor_closure<to_underlying_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::to_underlying);
+    }
+};
 
-    template <std::size_t I>
-    struct get_t final : std::ranges::range_adaptor_closure<get_t<I>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::get<I>);
-        }
-    };
+inline constexpr to_underlying_t to_underlying;
 
-    template <std::size_t I>
-    inline constexpr get_t<I> get;
+struct hash_t final : std::ranges::range_adaptor_closure<hash_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::hash);
+    }
+};
 
+inline constexpr hash_t hash;
 
-    struct indirect_t final : std::ranges::range_adaptor_closure<indirect_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::indirect);
-        }
-    };
+struct front_t final : std::ranges::range_adaptor_closure<front_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::front);
+    }
+};
 
-    inline constexpr indirect_t indirect;
+inline constexpr front_t front;
 
+struct back_t final : std::ranges::range_adaptor_closure<back_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::back);
+    }
+};
 
-    struct addressof_t final : std::ranges::range_adaptor_closure<addressof_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::addressof);
-        }
-    };
+inline constexpr back_t back;
 
-    inline constexpr addressof_t addressof;
+struct invoke_t final : std::ranges::range_adaptor_closure<invoke_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::invoke);
+    }
+};
 
+inline constexpr invoke_t invoke;
 
-    struct to_underlying_t final : std::ranges::range_adaptor_closure<to_underlying_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::to_underlying);
-        }
-    };
+struct make_input_str_t final : std::ranges::range_adaptor_closure<make_input_str_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::make_input_str);
+    }
+};
 
-    inline constexpr to_underlying_t to_underlying;
+inline constexpr make_input_str_t make_input_str;
 
+struct range_from_nullable_t final : std::ranges::range_adaptor_closure<range_from_nullable_t> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::range_from_nullable);
+    }
+};
 
-    struct hash_t final : std::ranges::range_adaptor_closure<hash_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::hash);
-        }
-    };
-
-    inline constexpr hash_t hash;
-
-
-    struct front_t final : std::ranges::range_adaptor_closure<front_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::front);
-        }
-    };
-
-    inline constexpr front_t front;
-
-
-    struct back_t final : std::ranges::range_adaptor_closure<back_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::back);
-        }
-    };
-
-    inline constexpr back_t back;
-
-
-    struct invoke_t final : std::ranges::range_adaptor_closure<invoke_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::invoke);
-        }
-    };
-
-    inline constexpr invoke_t invoke;
-
-
-    struct make_input_str_t final : std::ranges::range_adaptor_closure<make_input_str_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::make_input_str);
-        }
-    };
-
-    inline constexpr make_input_str_t make_input_str;
-
-
-    struct range_from_nullable_t final : std::ranges::range_adaptor_closure<range_from_nullable_t> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::range_from_nullable);
-        }
-    };
-
-    inline constexpr range_from_nullable_t range_from_nullable;
+inline constexpr range_from_nullable_t range_from_nullable;
 
 #ifdef EON_SPARK_INCLUDE_BOOST
 
-    template <typename Target>
-    struct lexical_caster_t final : std::ranges::range_adaptor_closure<lexical_caster_t<Target>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), spark::lexical_caster<Target>);
-        }
-    };
+template <typename Target>
+struct lexical_caster_t final : std::ranges::range_adaptor_closure<lexical_caster_t<Target>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), spark::lexical_caster<Target>);
+    }
+};
 
-    template <typename Target>
-    inline constexpr lexical_caster_t<Target> lexical_caster;
+template <typename Target>
+inline constexpr lexical_caster_t<Target> lexical_caster;
 
+template <template <typename...> typename Template>
+struct construct_t final : std::ranges::range_adaptor_closure<construct_t<Template>> {
+    template <std::ranges::viewable_range Rng>
+    [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
+        return std::views::transform(std::forward<Rng>(rng), boost::hof::construct<Template>());
+    }
+};
 
-    template <template <typename...> typename Template>
-    struct construct_t final : std::ranges::range_adaptor_closure<construct_t<Template>> {
-        template <std::ranges::viewable_range Rng>
-        [[nodiscard]] constexpr std::ranges::viewable_range auto operator()(Rng && rng) const noexcept {
-            return std::views::transform(std::forward<Rng>(rng), boost::hof::construct<Template>());
-        }
-    };
-
-    template <template <typename...> typename Template>
-    inline constexpr construct_t<Template> construct;
+template <template <typename...> typename Template>
+inline constexpr construct_t<Template> construct;
 
 #endif
 
-}
+} // namespace eon::spark::views
 
 namespace eon {
-    namespace views = spark::views;
+namespace views = spark::views;
 }

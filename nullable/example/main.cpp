@@ -1,7 +1,7 @@
 #include <functional>
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include <eon/nullable.hpp>
 
@@ -34,19 +34,11 @@ void foo() {
 int main() {
     std::optional<widget> opt = widget{};
 
-    // if (opt) {
-    //     if (auto const value = opt->foo(42))
-    //         std::cout << *value;
-    //     else
-    //         std::cout << "empty";
-    // }
-    // else
-    //     std::cout << "empty";
-
-    if (auto const value = eon::invoke_nullable_ref(&widget::bar, opt, 42))
+    if (auto const value = eon::invoke_nullable_ref(&widget::bar, opt, 42)) {
         std::cout << *value << std::endl;
-    else
+    } else {
         std::cout << "empty\n";
+    }
 
     return 0;
 }

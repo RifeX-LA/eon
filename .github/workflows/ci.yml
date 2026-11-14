@@ -1,0 +1,177 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned clang-format
+        run: python3 -m pip install clang-format==22.1.3
+      - name: Check formatting on every tracked C++ source
+        shell: python
+        run: |
+          import subprocess
+          files = subprocess.check_output(["git", "ls-files", "-z"], text=True).split("\0")
+          sources = [p for p in files if p.endswith((".hpp", ".h", ".cpp", ".cc", ".cxx", ".ipp", ".tpp"))]
+          if not sources:
+              raise SystemExit("No C++ files found")
+          subprocess.run(["clang-format", "--dry-run", "--Werror", *sources], check=True)
+
+  tests:
+    name: MSVC / ${{ matrix.name }}
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Debug
+            config: Debug
+            asan: 'OFF'
+          - name: Release
+            config: Release
+            asan: 'OFF'
+          - name: AddressSanitizer
+            config: Debug
+            asan: 'ON'
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: eon
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: eon
+      - name: Locate MSVC and its sanitizer runtime
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+          $installation = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $installation) { throw 'MSVC installation not found' }
+          $version = (Get-Content "$installation/VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt").Trim()
+          "$installation/VC/Tools/MSVC/$version/bin/Hostx64/x64" >> $env:GITHUB_PATH
+      - name: Cache Boost headers
+        id: boost-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/boost_1_92_0
+          key: boost-1.92.0-headers-windows
+      - name: Download Boost 1.92.0
+        if: steps.boost-cache.outputs.cache-hit != 'true'
+        run: |
+          $archive = "$env:RUNNER_TEMP/boost.zip"
+          Invoke-WebRequest https://archives.boost.io/release/1.92.0/source/boost_1_92_0.zip -OutFile $archive
+          $expected = 'c46baee75ed4b558cf6553630d0615a147ed582812917b57e6f0839d1954549f'
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
+            throw 'Boost archive checksum mismatch'
+          }
+          tar -xf $archive -C $env:RUNNER_TEMP
+          if ($LASTEXITCODE -ne 0) { throw 'Boost extraction failed' }
+      - name: Configure
+        run: >-
+          cmake -S . -B build-tests -G "Visual Studio 18 2026" -A x64
+          -DBUILD_TESTING=ON -DEON_TEST_ASAN=${{ matrix.asan }}
+          "-DEON_BOOST_INCLUDE_DIR=$env:RUNNER_TEMP/boost_1_92_0"
+      - name: Build all tests and independent header checks
+        run: cmake --build build-tests --config ${{ matrix.config }} --parallel 4
+      - name: Run all tests
+        run: >-
+          ctest --test-dir build-tests -C ${{ matrix.config }}
+          --output-on-failure --no-tests=error --output-junit results.xml
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.name }}
+          path: |
+            eon/build-tests/results.xml
+            eon/build-tests/Testing/Temporary/LastTest.log
+            eon/build-tests/Testing/Temporary/LastTestsFailed.log
+          if-no-files-found: ignore
+
+  linux-tests:
+    name: ${{ matrix.toolchain.name }} / ${{ matrix.mode.name }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain:
+          - name: GCC 15
+            cxx: g++-15
+            flags: ''
+          - name: Clang 22
+            cxx: clang++-22
+            flags: --gcc-install-dir=/usr/lib/gcc/x86_64-linux-gnu/15
+        mode:
+          - name: Debug
+            config: Debug
+            asan: 'OFF'
+          - name: Release
+            config: Release
+            asan: 'OFF'
+          - name: AddressSanitizer
+            config: Debug
+            asan: 'ON'
+    defaults:
+      run:
+        shell: bash
+        working-directory: eon
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: eon
+      - name: Install compiler and parallel algorithm dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-15 clang-22 libstdc++-15-dev libtbb-dev ninja-build
+      - name: Cache Boost headers
+        id: boost-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/boost_1_92_0
+          key: boost-1.92.0-headers-linux
+      - name: Download Boost 1.92.0
+        if: steps.boost-cache.outputs.cache-hit != 'true'
+        run: |
+          curl --fail --location --retry 3 \
+            https://archives.boost.io/release/1.92.0/source/boost_1_92_0.tar.gz \
+            --output "$RUNNER_TEMP/boost.tar.gz"
+          printf '%s  %s\n' \
+            c4a3b310ddd2472416e091067166b0713be97c63f38c212c484ada022fd296ce \
+            "$RUNNER_TEMP/boost.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/boost.tar.gz" -C "$RUNNER_TEMP"
+      - name: Configure
+        env:
+          CXX: ${{ matrix.toolchain.cxx }}
+          CXXFLAGS: ${{ matrix.toolchain.flags }}
+        run: >-
+          cmake -S . -B build-tests -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.mode.config }}
+          -DBUILD_TESTING=ON -DEON_TEST_ASAN=${{ matrix.mode.asan }}
+          -DCMAKE_CXX_EXTENSIONS=OFF
+          -DEON_BOOST_INCLUDE_DIR="$RUNNER_TEMP/boost_1_92_0"
+      - name: Build all tests and independent header checks
+        run: cmake --build build-tests --parallel 4
+      - name: Run all tests
+        run: >-
+          ctest --test-dir build-tests
+          --output-on-failure --no-tests=error --output-junit results.xml
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.toolchain.name }}-${{ matrix.mode.name }}
+          path: |
+            eon/build-tests/results.xml
+            eon/build-tests/Testing/Temporary/LastTest.log
+            eon/build-tests/Testing/Temporary/LastTestsFailed.log
+          if-no-files-found: ignore

@@ -1,9 +1,8 @@
+#include <algorithm>
 #include <iostream>
 #include <vector>
-#include <algorithm>
 
 #include <eon/chrono.hpp>
-
 
 [[nodiscard]] std::vector<int> create_vector(std::size_t const size) {
     return std::vector<int>(size);
@@ -42,7 +41,8 @@ int main() {
     fill_vector(vector);
     std::cout << "Fill vector time: " << timer.elapsed() << "s\n";
 
-    std::cout << "Sort vector time: " << eon::chrono::timer<std::uintmax_t, std::milli>::elapsed(sort_vector, vector) << "ms\n";
+    std::cout << "Sort vector time: " << eon::chrono::timer<std::uintmax_t, std::milli>::elapsed(sort_vector, vector)
+              << "ms\n";
 
     push_back_to_vector(1'000'000);
 
