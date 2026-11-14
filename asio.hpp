@@ -466,7 +466,7 @@ template <typename T, class Rep, class Period>
 void write_with_timeout(boost::asio::ip::tcp::socket & socket, T const & value,
                         std::chrono::duration<Rep, Period> timeout) {
     detail::timeout_scope scope(socket, timeout);
-    write(socket, value);
+    eon::asio::write(socket, value);
 }
 
 template <typename T, class Rep, class Period>

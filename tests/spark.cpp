@@ -325,6 +325,54 @@ static_assert(s::less{}(char(-1), std::numeric_limits<unsigned>::max()));
 static_assert(s::equal{}(true, 1) && s::less{}(false, true));
 static_assert(s::equal{}(u'x', U'x') && s::neq(L'x')(L'y'));
 
+template <std::floating_point T>
+constexpr bool floating_sign_predicates() {
+    for (T value : {T{-1}, T{0}, -T{0}, T{1}, std::numeric_limits<T>::min(), std::numeric_limits<T>::lowest(),
+                    std::numeric_limits<T>::max(), std::numeric_limits<T>::epsilon() / T{2}}) {
+        if (s::zero(value) != (value == 0) || s::non_zero(value) != (value != 0) || s::negative(value) != (value < 0) ||
+            s::positive(value) != (value > 0) || s::non_negative(value) != (value >= 0) ||
+            s::non_positive(value) != (value <= 0)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static_assert(floating_sign_predicates<float>());
+static_assert(floating_sign_predicates<double>());
+static_assert(floating_sign_predicates<long double>());
+static_assert(s::equal{}(1, 1.0) && s::equal{}(1.0, 1));
+static_assert(s::not_equal{}(1, 1.5) && s::not_equal{}(1.5, 1));
+static_assert(s::less{}(1, 1.5) && s::less{}(1.5, 2));
+static_assert(s::greater{}(2, 1.5) && s::greater{}(1.5, 1));
+static_assert(s::less_equal{}(1, 1.0) && s::less_equal{}(1.0, 1));
+static_assert(s::greater_equal{}(1, 1.0) && s::greater_equal{}(1.0, 1));
+
+TEST(Spark, LvalueComparisonsPreserveSpecializedSemantics) {
+    const int negative = -1;
+    unsigned maximum = std::numeric_limits<unsigned>::max();
+    EXPECT_TRUE(s::less{}(negative, maximum));
+    EXPECT_FALSE(s::equal{}(negative, maximum));
+
+    const double one = 1.0;
+    double near_one = one + std::numeric_limits<double>::epsilon();
+    EXPECT_TRUE(s::equal{}(one, near_one));
+    EXPECT_FALSE(s::less{}(one, near_one));
+}
+
+TEST(Spark, FloatingSignPredicatesHandleInfinitiesAndNan) {
+    double const infinity = std::numeric_limits<double>::infinity();
+    double const nan = std::numeric_limits<double>::quiet_NaN();
+    for (double value : {infinity, -infinity, nan}) {
+        EXPECT_EQ(s::zero(value), value == 0);
+        EXPECT_EQ(s::non_zero(value), value != 0);
+        EXPECT_EQ(s::negative(value), value < 0);
+        EXPECT_EQ(s::positive(value), value > 0);
+        EXPECT_EQ(s::non_negative(value), value >= 0);
+        EXPECT_EQ(s::non_positive(value), value <= 0);
+    }
+}
+
 TEST(Spark, ConstCasterPipePreservesAddressAndMutability) {
     int value = 7;
     std::array<const int *, 1> pointers{&value};

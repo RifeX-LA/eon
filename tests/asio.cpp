@@ -617,6 +617,16 @@ TEST_F(AsioTest, TimedReadAndWritePreserveSerializationAndBlockingMode) {
     EXPECT_FALSE(receiver.non_blocking());
 }
 
+TEST_F(AsioTest, TimedWritePrefersMemberOverAdl) {
+    using namespace std::chrono_literals;
+    serialization_example::Both value;
+    value.value = 42;
+
+    ASSERT_NO_THROW(net::write_with_timeout(sender, value, 2s));
+    EXPECT_EQ(net::read_with_timeout<int>(receiver, 2s), value.value);
+    EXPECT_FALSE(sender.non_blocking());
+}
+
 TEST_F(AsioTest, TimedReadWaitsForDelayedData) {
     using namespace std::chrono_literals;
     auto value = transfer(

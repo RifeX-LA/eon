@@ -29,7 +29,8 @@ struct make_comparator final {
     }
 
     template <typename T, typename U>
-    requires ((!std::is_arithmetic_v<std::remove_cvref_t<T>> || !std::is_arithmetic_v<std::remove_cvref_t<U>>) &&
+    requires (!(std::integral<std::remove_cvref_t<T>> && std::integral<std::remove_cvref_t<U>>) &&
+              !(std::floating_point<std::remove_cvref_t<T>> && std::floating_point<std::remove_cvref_t<U>>) &&
               std::predicate<CommonComp, T, U>)
     [[nodiscard]] constexpr bool operator()(T && lhs, U && rhs) const
         noexcept(noexcept(CommonComp{}(std::forward<T>(lhs), std::forward<U>(rhs)))) {
